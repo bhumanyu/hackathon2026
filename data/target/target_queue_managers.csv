@@ -1,0 +1,5 @@
+QM_ID,Region,Neighborhood,Description,Change
+QM.ORDER01,US-EAST,NYC,Order and billing and reporting hub,expanded
+QM.PAYMENT01,US-EAST,NYC,Payment processing,unchanged
+QM.INVENTORY01,US-WEST,LAX,Inventory and fulfillment and batch,expanded
+QM.LEGACY01,US-EAST,NYC,Legacy audit integration slimmed,slimmed

@@ -1,0 +1,7 @@
+QM_ID,Region,Neighborhood,Description
+QM.ORDER01,US-EAST,NYC,Handles order processing messages
+QM.PAYMENT01,US-EAST,NYC,Handles payment processing messages
+QM.INVENTORY01,US-WEST,LAX,Manages inventory and stock levels
+QM.LEGACY01,US-EAST,NYC,Legacy integration hub (overgrown)
+QM.BATCH01,EU-WEST,LON,Batch job processing queue manager
+QM.REPORT01,EU-WEST,LON,Report generation queue manager

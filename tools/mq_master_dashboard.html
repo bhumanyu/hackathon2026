@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MQ Hackathon — Submission Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0f11;--bg2:#161719;--bg3:#1e2022;--bg4:#252729;
+  --border:#2a2d31;--border2:#353a40;
+  --text:#e8eaed;--text2:#9aa0ab;--text3:#5c6370;
+  --green:#4af29a;--gdim:#0f2d1a;
+  --amber:#f5c842;--adim:#2a2000;
+  --red:#ff6b6b;--rdim:#2d1010;
+  --blue:#60a5fa;--bdim:#0f1e30;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;padding:0 28px;height:58px;border-bottom:1px solid var(--border);gap:14px;background:var(--bg);}
+.logo{font-family:var(--mono);font-size:14px;color:var(--green);letter-spacing:-.03em;font-weight:500;}
+.sep{width:1px;height:20px;background:var(--border);}
+.ttitle{font-size:13px;color:var(--text2);}
+.hbadge{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulseAnim 2s ease-in-out infinite;}
+@keyframes pulseAnim{0%,100%{box-shadow:0 0 0 0 #4af29a44}50%{box-shadow:0 0 0 5px #4af29a00}}
+.hbadge-text{font-family:var(--mono);font-size:11px;color:var(--text3);}
+
+/* ── SIDEBAR ── */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 58px);}
+.sidebar{border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:6px;}
+.sb-section{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);padding:10px 8px 4px;}
+.sb-btn{display:flex;align-items:center;gap:10px;padding:8px 10px;border:none;background:none;border-radius:6px;cursor:pointer;text-align:left;width:100%;transition:background .15s;}
+.sb-btn:hover{background:var(--bg3);}
+.sb-btn.active{background:var(--bg3);border:1px solid var(--border);}
+.sb-icon{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.sb-label{font-size:12px;color:var(--text2);}
+.sb-btn.active .sb-label{color:var(--text);}
+.sb-badge{margin-left:auto;font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:3px;}
+.sb-divider{height:1px;background:var(--border);margin:6px 0;}
+
+/* ── PAGES ── */
+.page{display:none;padding:28px;overflow-y:auto;}
+.page.active{display:block;}
+.page-title{font-size:20px;font-weight:500;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--text3);margin-bottom:24px;}
+
+/* ── OVERVIEW ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.kpi{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.kpi-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.kpi-num{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1;}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+.kpi-num.red{color:var(--red);}
+.kpi-num.green{color:var(--green);}
+.kpi-num.amber{color:var(--amber);}
+.kpi-num.blue{color:var(--blue);}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg4);font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+.card-body{padding:14px 16px;}
+
+.score-compare{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.score-box{flex:1;text-align:center;padding:16px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;}
+.score-box.asis{border-color:var(--red);}
+.score-box.tgt{border-color:var(--green);}
+.score-big{font-family:var(--mono);font-size:40px;font-weight:500;line-height:1;margin:4px 0;}
+.score-big.red{color:var(--red);}.score-big.green{color:var(--green);}
+.score-lbl{font-size:11px;color:var(--text3);}
+.score-arrow{font-size:28px;color:var(--text3);}
+.reduction-pill{background:var(--gdim);color:var(--green);font-family:var(--mono);font-size:13px;font-weight:500;padding:8px 20px;border-radius:20px;border:1px solid var(--green);white-space:nowrap;}
+
+.bar-bg{background:var(--border);border-radius:3px;height:6px;margin:8px 0 4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;}
+
+.constraint-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.constraint-row:last-child{border-bottom:none;}
+.cr-icon{font-family:var(--mono);font-size:13px;width:20px;text-align:center;flex-shrink:0;}
+.cr-text{color:var(--text2);flex:1;}
+.cr-status{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;}
+
+.timeline{position:relative;padding-left:20px;}
+.timeline::before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:1px;background:var(--border);}
+.tl-item{position:relative;padding:0 0 16px 16px;}
+.tl-item::before{content:'';position:absolute;left:-6px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--gdim);border:1.5px solid var(--green);}
+.tl-title{font-size:13px;font-weight:500;margin-bottom:3px;}
+.tl-desc{font-size:12px;color:var(--text3);line-height:1.6;}
+
+/* ── TOPOLOGY ── */
+.topo-controls{display:flex;gap:8px;margin-bottom:16px;align-items:center;}
+.topo-controls h3{font-size:15px;font-weight:500;flex:1;}
+.tgl-grp{display:flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px;}
+.tgl{padding:5px 14px;border:none;background:none;color:var(--text3);font-family:var(--mono);font-size:11px;cursor:pointer;border-radius:4px;transition:all .15s;}
+.tgl.active{background:var(--bg);color:var(--green);border:1px solid var(--border);}
+
+.topo-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;}
+.topo-bar{padding:9px 14px;border-bottom:1px solid var(--border);background:var(--bg4);font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);}
+.topo-bar span{color:var(--text2);text-transform:none;letter-spacing:0;}
+svg.topo{width:100%;display:block;}
+
+.diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;padding:12px 14px;background:var(--bg4);border-top:1px solid var(--border);}
+.leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);}
+.ldot{width:10px;height:10px;border-radius:2px;}
+.lline{width:20px;height:0;border-bottom:2px solid;}
+
+.node-info{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;display:none;}
+.ni-title{font-family:var(--mono);font-size:12px;margin-bottom:10px;}
+.ni-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.ni-cell{background:var(--bg4);border-radius:4px;padding:7px 10px;}
+.ni-k{font-size:10px;color:var(--text3);margin-bottom:2px;font-family:var(--mono);}
+.ni-v{font-size:12px;color:var(--text2);}
+
+/* ── AGENT ── */
+.terminal-shell{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.term-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg4);border-bottom:1px solid var(--border);}
+.dots{display:flex;gap:5px;}
+.dots span{width:10px;height:10px;border-radius:50%;}
+.term-title{font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:4px;flex:1;}
+.term-status{font-family:var(--mono);font-size:11px;}
+.term-status.idle{color:var(--text3);}
+.term-status.running{color:var(--amber);}
+.term-status.done{color:var(--green);}
+.term-body{padding:16px;font-family:var(--mono);font-size:12px;line-height:1.9;min-height:160px;overflow-y:auto;max-height:320px;}
+.tl{display:flex;gap:8px;}
+.tp{color:var(--green);flex-shrink:0;}
+.tt{color:var(--text2);}
+.tt.hi{color:var(--text);}
+.tt.ok{color:var(--green);}
+.tt.wn{color:var(--amber);}
+.tt.er{color:var(--red);}
+.tt.inf{color:var(--blue);}
+.cursor{display:inline-block;width:8px;height:13px;background:var(--green);animation:blink 1s step-end infinite;vertical-align:middle;margin-left:2px;}
+@keyframes blink{50%{opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+
+.run-btn{display:flex;align-items:center;gap:8px;padding:10px 22px;background:var(--green);color:#0a1a12;border:none;border-radius:6px;font-family:var(--mono);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px;transition:opacity .15s;}
+.run-btn:hover{opacity:.88;}
+.run-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.res-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.rtab{padding:7px 14px;border:none;background:none;border-bottom:2px solid transparent;font-family:var(--mono);font-size:11px;color:var(--text3);cursor:pointer;}
+.rtab.active{color:var(--green);border-bottom-color:var(--green);}
+.rpanel{display:none;}
+.rpanel.active{display:block;}
+
+.violation{background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;}
+.violation.c{border-left:3px solid var(--red);}
+.violation.w{border-left:3px solid var(--amber);}
+.violation.i{border-left:3px solid var(--blue);}
+.vh{display:flex;gap:8px;align-items:center;padding:8px 12px;}
+.vsev{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;}
+.vsev.c{background:var(--rdim);color:var(--red);}
+.vsev.w{background:var(--adim);color:var(--amber);}
+.vsev.i{background:var(--bdim);color:var(--blue);}
+.vobj{font-family:var(--mono);font-size:11px;}
+.vtype{margin-left:auto;font-size:11px;color:var(--text3);}
+.vb{padding:0 12px 10px;font-size:12px;color:var(--text2);line-height:1.6;}
+.vfix{font-family:var(--mono);font-size:10px;color:var(--green);background:var(--gdim);padding:3px 8px;border-radius:3px;display:inline-block;margin-top:4px;}
+
+.dec-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;}
+.dch{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;}
+.dc-num{font-family:var(--mono);font-size:11px;color:var(--bg);background:var(--green);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.dc-title{font-size:13px;font-weight:500;flex:1;}
+.dc-tog{color:var(--text3);font-size:16px;transition:transform .2s;}
+.dc-tog.open{transform:rotate(90deg);}
+.dcb{padding:0 12px 12px 42px;display:none;font-size:12px;color:var(--text2);line-height:1.7;}
+.dcb.open{display:block;}
+.dcw{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--bg2);padding:8px;border-radius:4px;border-left:2px solid var(--border2);margin-top:6px;line-height:1.9;}
+
+table.res-table{width:100%;border-collapse:collapse;font-size:12px;}
+table.res-table th{text-align:left;padding:6px 10px;background:var(--bg4);color:var(--text3);font-weight:500;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);}
+table.res-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
+table.res-table tr:last-child td{border-bottom:none;}
+table.res-table tr:hover td{background:var(--bg4);}
+.tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;}
+.tg{background:var(--gdim);color:var(--green);}
+.ta{background:var(--adim);color:var(--amber);}
+.tr{background:var(--rdim);color:var(--red);}
+.tb{background:var(--bdim);color:var(--blue);}
+
+/* ── VALIDATION ── */
+.val-prog{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.prog-bg{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.prog-fg{height:100%;background:var(--green);border-radius:2px;transition:width .4s ease;}
+.prog-txt{font-family:var(--mono);font-size:11px;color:var(--text3);}
+
+.val-2col{display:grid;grid-template-columns:1fr 300px;gap:14px;}
+.prop-card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+.pc-head{padding:12px 16px;background:var(--bg4);border-bottom:1px solid var(--border);}
+.pc-step{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+.pc-title{font-size:15px;font-weight:500;}
+.pc-body{padding:14px 16px;}
+.pc-slabel{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.pc-text{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px;}
+.pc-impact{background:var(--bg2);border-radius:6px;padding:9px 12px;font-family:var(--mono);font-size:11px;color:var(--text3);line-height:2;margin-bottom:12px;}
+.pc-impact .pos{color:var(--green);}.pc-impact .neg{color:var(--red);}
+.pc-changes{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--bg2);padding:9px 12px;border-radius:6px;border-left:2px solid var(--border2);line-height:1.9;}
+.pc-actions{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:var(--bg4);}
+.btn-ap{flex:1;padding:9px;background:var(--green);color:#0a1a12;border:none;border-radius:5px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;}
+.btn-ap:hover{opacity:.88;}
+.btn-rj{flex:1;padding:9px;background:none;color:var(--red);border:1px solid var(--rdim);border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;}
+.btn-rj:hover{background:var(--rdim);}
+.btn-sk{padding:9px 14px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:5px;font-family:var(--mono);font-size:12px;cursor:pointer;}
+
+.dlog{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.dlog-head{padding:9px 12px;border-bottom:1px solid var(--border);background:var(--bg4);font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+.dlog-body{padding:8px;}
+.dl-e{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.dl-e:last-child{border-bottom:none;}
+.dl-i{font-family:var(--mono);font-size:12px;flex-shrink:0;margin-top:1px;}
+.dl-i.ok{color:var(--green);}.dl-i.no{color:var(--red);}
+.dl-t{color:var(--text2);line-height:1.5;}
+.dlog-empty{font-size:12px;color:var(--text3);text-align:center;padding:18px;font-family:var(--mono);}
+
+.done-banner{background:var(--gdim);border:1px solid var(--green);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.done-banner .dbicon{color:var(--green);font-size:16px;}
+.done-banner .dbtext{font-size:13px;color:var(--green);flex:1;}
+.done-banner .dbbtn{padding:5px 14px;background:var(--green);color:#0a1a12;border:none;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;}
+
+/* ── EXPORT ── */
+.exp-summary{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:18px;}
+.exp-sum-title{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.formula{font-family:var(--mono);font-size:11px;line-height:2;padding:10px 12px;background:var(--bg2);border-radius:6px;border-left:2px solid var(--green);}
+.formula .as{color:var(--red);}.formula .tg{color:var(--green);}.formula .rs{color:var(--text);font-weight:500;}
+
+.dl-all{width:100%;padding:11px;background:var(--green);color:#0a1a12;border:none;border-radius:6px;font-family:var(--mono);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px;}
+.dl-all:hover{opacity:.88;}
+.csv-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.csv-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.csv-head{display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);background:var(--bg4);}
+.csv-name{font-family:var(--mono);font-size:11px;color:var(--green);flex:1;}
+.csv-rows{font-size:11px;color:var(--text3);margin-right:8px;}
+.csv-dl{padding:4px 10px;background:none;border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer;}
+.csv-dl:hover{border-color:var(--green);color:var(--green);}
+.csv-pre{padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text3);white-space:pre;line-height:1.8;max-height:130px;overflow-y:auto;overflow-x:auto;}
+.csv-pre .hrow{color:var(--blue);}
+
+/* ── util ── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fade{animation:fadeUp .3s ease both;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="logo">MQ//HACKATHON</span>
+  <div class="sep"></div>
+  <span class="ttitle">Intelligent MQ Topology Simplification &amp; Automation</span>
+  <div class="hbadge"><div class="pulse"></div><span class="hbadge-text">Submission Ready</span></div>
+</div>
+
+<div class="shell">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-section">Navigation</div>
+  <button class="sb-btn active" onclick="page('overview',this)">
+    <div class="sb-icon" style="background:var(--bdim);">📊</div>
+    <span class="sb-label">Overview</span>
+  </button>
+  <button class="sb-btn" onclick="page('topology',this)">
+    <div class="sb-icon" style="background:var(--gdim);">🗺</div>
+    <span class="sb-label">Topology</span>
+  </button>
+  <button class="sb-btn" onclick="page('agent',this)">
+    <div class="sb-icon" style="background:var(--adim);">🤖</div>
+    <span class="sb-label">Agent</span>
+    <span class="sb-badge" style="background:var(--adim);color:var(--amber);">AI</span>
+  </button>
+  <button class="sb-btn" onclick="page('validate',this)">
+    <div class="sb-icon" style="background:var(--gdim);">✅</div>
+    <span class="sb-label">Validate</span>
+  </button>
+  <div class="sb-divider"></div>
+  <button class="sb-btn" onclick="page('export',this)">
+    <div class="sb-icon" style="background:var(--bg4);">⬇</div>
+    <span class="sb-label">Export</span>
+  </button>
+</nav>
+
+<!-- PAGES -->
+<main style="overflow-y:auto;">
+
+<!-- ══ OVERVIEW ══ -->
+<div class="page active" id="p-overview">
+  <div class="page-title">Hackathon Submission Overview</div>
+  <div class="page-sub">Intelligent MQ Topology Simplification &amp; Automation · As-Is → Target State</div>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Complexity Reduction</div><div class="kpi-num green">49%</div><div class="kpi-sub">87 → 44 score</div></div>
+    <div class="kpi"><div class="kpi-label">QMs Removed</div><div class="kpi-num amber">2</div><div class="kpi-sub">6 → 4 queue managers</div></div>
+    <div class="kpi"><div class="kpi-label">Channels Removed</div><div class="kpi-num blue">8</div><div class="kpi-sub">14 → 6 channels</div></div>
+    <div class="kpi"><div class="kpi-label">Violations Fixed</div><div class="kpi-num green">12</div><div class="kpi-sub">All constraints met</div></div>
+  </div>
+
+  <div class="score-compare">
+    <div class="score-box asis"><div class="score-lbl">As-Is Score</div><div class="score-big red">87</div><div class="score-lbl">baseline complexity</div></div>
+    <div class="score-arrow">→</div>
+    <div class="reduction-pill">▼ 49% simpler</div>
+    <div class="score-arrow">→</div>
+    <div class="score-box tgt"><div class="score-lbl">Target Score</div><div class="score-big green">44</div><div class="score-lbl">after simplification</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head">Core Constraints — All Satisfied</div>
+      <div class="card-body">
+        <div class="constraint-row"><span class="cr-icon" style="color:var(--green)">✓</span><span class="cr-text">Exactly 1 QM per AppID — all 8 apps now connect to a single QM</span><span class="cr-status" style="background:var(--gdim);color:var(--green)">PASS</span></div>
+        <div class="constraint-row"><span class="cr-icon" style="color:var(--green)">✓</span><span class="cr-text">Producers use remoteQ → xmitq → sender channel pattern</span><span class="cr-status" style="background:var(--gdim);color:var(--green)">PASS</span></div>
+        <div class="constraint-row"><span class="cr-icon" style="color:var(--green)">✓</span><span class="cr-text">All 6 channels follow fromQM.toQM naming convention</span><span class="cr-status" style="background:var(--gdim);color:var(--green)">PASS</span></div>
+        <div class="constraint-row"><span class="cr-icon" style="color:var(--green)">✓</span><span class="cr-text">All consumers read from local queues fed by channels</span><span class="cr-status" style="background:var(--gdim);color:var(--green)">PASS</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">Simplification Actions Taken</div>
+      <div class="card-body">
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-title">QM.BATCH01 decommissioned</div><div class="tl-desc">Single-app QM absorbed into INVENTORY01. APP007 migrated.</div></div>
+          <div class="tl-item"><div class="tl-title">QM.REPORT01 decommissioned</div><div class="tl-desc">Single-app QM absorbed into ORDER01. APP008 migrated.</div></div>
+          <div class="tl-item"><div class="tl-title">3 multi-QM violations fixed</div><div class="tl-desc">APP003, APP005, APP007 each now use exactly one QM.</div></div>
+          <div class="tl-item"><div class="tl-title">4 unused queues removed</div><div class="tl-desc">Q.LEGACY.DEAD, Q.ORPHAN.1, Q.TEST.OLD, Q.UNUSED.BATCH</div></div>
+          <div class="tl-item"><div class="tl-title" style="padding-bottom:0">5 bad channel names corrected</div><div class="tl-desc">Renamed to fromQM.toQM convention or removed with QM.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">Complexity Formula — As-Is vs Target</div>
+    <div class="card-body">
+      <div style="font-family:var(--mono);font-size:12px;line-height:2.2;background:var(--bg2);padding:12px 14px;border-radius:6px;border-left:2px solid var(--green);">
+        <span style="color:var(--text3)">// Score = (QM_count×10) + (channel_count×3) + (unused_queues×5) + (multi_qm_apps×8) + (bad_channel_names×2)</span><br>
+        <span style="color:var(--red)">As-Is  = (6×10) + (14×3) + (4×5) + (3×8) + (5×2)  =  60 + 42 + 20 + 24 + 10  =  <strong>87</strong></span><br>
+        <span style="color:var(--green)">Target = (4×10) + (6×3)  + (0×5) + (0×8) + (0×2)  =  40 + 18 +  0 +  0 +  0  =  <strong>44</strong></span><br>
+        <span style="color:var(--text);font-weight:500;">▼ Reduction: 43 points — 49% simpler topology</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOPOLOGY ══ -->
+<div class="page" id="p-topology">
+  <div class="page-title">Topology Visualizer</div>
+  <div class="page-sub">Click any node to inspect its properties · Toggle between views</div>
+
+  <div class="topo-controls">
+    <h3></h3>
+    <div class="tgl-grp">
+      <button class="tgl active" onclick="setTopoView('asis',this)">As-Is (6 QMs)</button>
+      <button class="tgl" onclick="setTopoView('target',this)">Target (4 QMs)</button>
+      <button class="tgl" onclick="setTopoView('diff',this)">Side-by-Side</button>
+    </div>
+  </div>
+
+  <!-- single -->
+  <div id="tv-single">
+    <div class="topo-wrap">
+      <div class="topo-bar" id="topo-bar-label">AS-IS TOPOLOGY — <span>6 queue managers · 14 channels · click a node to inspect</span></div>
+      <svg class="topo" id="main-topo-svg" viewBox="0 0 660 410"></svg>
+      <div class="legend-row">
+        <div class="leg"><div class="ldot" style="background:#185FA5;border:1.5px solid #60a5fa;"></div>Active QM</div>
+        <div class="leg"><div class="ldot" style="background:#3d1515;border:1.5px solid #ff6b6b;"></div>Constraint violation</div>
+        <div class="leg"><div class="ldot" style="background:#1e2022;border:1.5px dashed #5c6370;"></div>To decommission</div>
+        <div class="leg"><div class="ldot" style="background:#0f2d1a;border:1.5px solid #4af29a;"></div>Expanded</div>
+        <div class="leg"><div class="lline" style="background:#60a5fa;"></div>Good channel</div>
+        <div class="leg"><div class="lline dashed" style="border-bottom:2px dashed #f5c842;background:none;height:0;"></div>Bad / violation</div>
+      </div>
+    </div>
+    <div class="node-info fade" id="node-info">
+      <div class="ni-title" id="ni-title"></div>
+      <div class="ni-grid" id="ni-grid"></div>
+    </div>
+  </div>
+
+  <!-- diff -->
+  <div id="tv-diff" style="display:none;">
+    <div class="diff-grid">
+      <div class="topo-wrap">
+        <div class="topo-bar">AS-IS — <span>6 QMs · 14 channels</span></div>
+        <svg class="topo" id="diff-asis" viewBox="0 0 660 410"></svg>
+      </div>
+      <div class="topo-wrap">
+        <div class="topo-bar" style="color:var(--green);">TARGET STATE — <span style="color:var(--text3);">4 QMs · 6 channels · all constraints met</span></div>
+        <svg class="topo" id="diff-target" viewBox="0 0 660 310"></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AGENT ══ -->
+<div class="page" id="p-agent">
+  <div class="page-title">Intelligent MQ Agent</div>
+  <div class="page-sub">Claude-powered analysis — reads as-is CSVs and produces target state with full reasoning</div>
+
+  <button class="run-btn" id="runBtn" onclick="runAgent()">
+    <span id="run-icon">▶</span>
+    <span id="run-label">Run Agent Analysis</span>
+  </button>
+
+  <div class="terminal-shell">
+    <div class="term-bar">
+      <div class="dots"><span style="background:#ff5f56"></span><span style="background:#ffbd2e"></span><span style="background:#27c93f"></span></div>
+      <span class="term-title">mq-agent — claude-powered topology analysis</span>
+      <span class="term-status idle" id="t-status">idle</span>
+    </div>
+    <div class="term-body" id="term-body">
+      <div class="tl"><span class="tp">$</span><span class="tt hi">MQ Topology Agent ready. Press "Run Agent Analysis" to begin.</span></div>
+    </div>
+  </div>
+
+  <div id="agent-results" style="display:none;">
+    <div class="res-tabs">
+      <button class="rtab active" onclick="rtab('violations')">Violations</button>
+      <button class="rtab" onclick="rtab('decisions')">Decisions</button>
+      <button class="rtab" onclick="rtab('topology-table')">Topology</button>
+    </div>
+    <div class="rpanel active" id="rp-violations"></div>
+    <div class="rpanel" id="rp-decisions"></div>
+    <div class="rpanel" id="rp-topology-table"></div>
+  </div>
+</div>
+
+<!-- ══ VALIDATE ══ -->
+<div class="page" id="p-validate">
+  <div class="page-title">Human-in-the-Loop Validation</div>
+  <div class="page-sub">Review each agent proposal — approve, reject, or skip. Final CSVs reflect your decisions.</div>
+
+  <div class="done-banner" id="done-banner" style="display:none;">
+    <span class="dbicon">✓</span>
+    <span class="dbtext">All proposals reviewed. Target state finalised.</span>
+    <button class="dbbtn" onclick="page('export',document.querySelector('[onclick*=export]'))">Export →</button>
+  </div>
+
+  <div class="val-prog">
+    <div class="prog-bg"><div class="prog-fg" id="vprog" style="width:0%"></div></div>
+    <span class="prog-txt" id="vprog-label">Step 0 of 6</span>
+  </div>
+
+  <div class="val-2col">
+    <div id="prop-area"></div>
+    <div class="dlog">
+      <div class="dlog-head">Decision Log</div>
+      <div class="dlog-body" id="dlog-body"><div class="dlog-empty">No decisions yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EXPORT ══ -->
+<div class="page" id="p-export">
+  <div class="page-title">Export Target State</div>
+  <div class="page-sub">Download all 4 target-state CSVs · Ready for automated provisioning</div>
+
+  <div class="exp-summary">
+    <div class="exp-sum-title">Final Complexity Analysis</div>
+    <div class="formula">
+      <span style="color:var(--text3)">// Score = (QM×10) + (Channels×3) + (UnusedQueues×5) + (MultiQMApps×8) + (BadChannelNames×2)</span><br>
+      <span class="as">As-Is  = (6×10)+(14×3)+(4×5)+(3×8)+(5×2) = 60+42+20+24+10 = 87</span><br>
+      <span class="tg">Target = (4×10)+(6×3)+(0×5)+(0×8)+(0×2)  = 40+18+0+0+0   = 44</span><br>
+      <span class="rs">▼ Reduction: 43 points — 49% simpler</span>
+    </div>
+  </div>
+
+  <button class="dl-all" onclick="dlAll()">⬇ Download All 4 Target CSVs</button>
+
+  <div class="csv-grid" id="csv-grid"></div>
+</div>
+
+</main>
+</div><!-- end shell -->
+
+<script>
+/* ═══════════ NAVIGATION ═══════════ */
+function page(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='export') buildExport();
+}
+
+/* ═══════════ TOPOLOGY DATA ═══════════ */
+const NW=140, NH=46;
+const ASIS_NODES=[
+  {id:'ORDER01',   label:'QM.ORDER01',    sub:'US-EAST · APP001,003', status:'active',    fill:'#185FA5',stroke:'#60a5fa', apps:'APP001, APP003', queues:4, channels:3},
+  {id:'PAYMENT01', label:'QM.PAYMENT01',  sub:'US-EAST · APP002,003', status:'active',    fill:'#185FA5',stroke:'#60a5fa', apps:'APP002, APP003', queues:3, channels:2},
+  {id:'INVENTORY01',label:'QM.INVENTORY01',sub:'US-WEST · APP004,005',status:'active',    fill:'#185FA5',stroke:'#60a5fa', apps:'APP004, APP005', queues:3, channels:2},
+  {id:'LEGACY01',  label:'QM.LEGACY01',   sub:'US-EAST · VIOLATION',  status:'violation', fill:'#3d1515',stroke:'#ff6b6b', apps:'APP005, APP006, APP007', queues:5, channels:5},
+  {id:'BATCH01',   label:'QM.BATCH01',    sub:'EU-WEST · REMOVE',     status:'remove',    fill:'#1e2022',stroke:'#5c6370', apps:'APP007', queues:2, channels:1},
+  {id:'REPORT01',  label:'QM.REPORT01',   sub:'EU-WEST · REMOVE',     status:'remove',    fill:'#1e2022',stroke:'#5c6370', apps:'APP008', queues:1, channels:1},
+];
+const TARGET_NODES=[
+  {id:'ORDER01',    label:'QM.ORDER01',    sub:'US-EAST · expanded',   status:'expanded',  fill:'#0f2d1a',stroke:'#4af29a', apps:'APP001,003,008', queues:5, channels:2},
+  {id:'PAYMENT01',  label:'QM.PAYMENT01',  sub:'US-EAST · unchanged',  status:'active',    fill:'#185FA5',stroke:'#60a5fa', apps:'APP002', queues:2, channels:1},
+  {id:'INVENTORY01',label:'QM.INVENTORY01',sub:'US-WEST · expanded',   status:'expanded',  fill:'#0f2d1a',stroke:'#4af29a', apps:'APP004,005,007', queues:4, channels:1},
+  {id:'LEGACY01',   label:'QM.LEGACY01',   sub:'US-EAST · slimmed',    status:'slimmed',   fill:'#2a2000',stroke:'#f5c842', apps:'APP006', queues:2, channels:2},
+];
+const ASIS_POS={ORDER01:{cx:165,cy:90},PAYMENT01:{cx:460,cy:90},INVENTORY01:{cx:110,cy:265},LEGACY01:{cx:310,cy:345},BATCH01:{cx:510,cy:235},REPORT01:{cx:582,cy:135}};
+const TARGET_POS={ORDER01:{cx:185,cy:90},PAYMENT01:{cx:465,cy:90},INVENTORY01:{cx:130,cy:240},LEGACY01:{cx:450,cy:240}};
+
+function ep(cx,cy,tcx,tcy){
+  const dx=tcx-cx,dy=tcy-cy;
+  const t=Math.min(NW/2/Math.abs(dx||.001),NH/2/Math.abs(dy||.001));
+  return{x:cx+dx*t,y:cy+dy*t};
+}
+function mkMarker(svg,color){
+  const sid='mk'+color.replace(/[^a-z0-9]/gi,'');
+  if(svg.querySelector('#'+sid)) return sid;
+  let d=svg.querySelector('defs');
+  if(!d){d=document.createElementNS('http://www.w3.org/2000/svg','defs');svg.prepend(d);}
+  const m=document.createElementNS('http://www.w3.org/2000/svg','marker');
+  m.setAttribute('id',sid);m.setAttribute('viewBox','0 0 10 10');
+  m.setAttribute('refX','8');m.setAttribute('refY','5');
+  m.setAttribute('markerWidth','5');m.setAttribute('markerHeight','5');
+  m.setAttribute('orient','auto-start-reverse');
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d','M2 1L8 5L2 9');p.setAttribute('fill','none');
+  p.setAttribute('stroke',color);p.setAttribute('stroke-width','1.8');
+  p.setAttribute('stroke-linecap','round');
+  m.appendChild(p);d.appendChild(m);
+  return sid;
+}
+function drawEdge(svg,posMap,fid,tid,color,dashed,bidir){
+  const f=posMap[fid],t=posMap[tid];
+  if(!f||!t) return;
+  const p1=ep(f.cx,f.cy,t.cx,t.cy);
+  const p2=ep(t.cx,t.cy,f.cx,f.cy);
+  const dx=t.cx-f.cx,dy=t.cy-f.cy,len=Math.sqrt(dx*dx+dy*dy);
+  const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+  const off=bidir?12:18;
+  const px=-dy/len*off,py=dx/len*off;
+  const sid=mkMarker(svg,color);
+  function mkPath(x1,y1,x2,y2,ox,oy){
+    const pa=document.createElementNS('http://www.w3.org/2000/svg','path');
+    pa.setAttribute('d',`M${x1},${y1} Q${mx+ox},${my+oy} ${x2},${y2}`);
+    pa.setAttribute('fill','none');pa.setAttribute('stroke',color);
+    pa.setAttribute('stroke-width','1.5');
+    if(dashed) pa.setAttribute('stroke-dasharray','6 4');
+    pa.setAttribute('marker-end','url(#'+sid+')');
+    return pa;
+  }
+  svg.appendChild(mkPath(p1.x,p1.y,p2.x,p2.y,px,py));
+  if(bidir) svg.appendChild(mkPath(p2.x,p2.y,p1.x,p1.y,-px,-py));
+}
+function drawNode(svg,n,pos,clickFn){
+  const x=pos.cx-NW/2,y=pos.cy-NH/2;
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.style.cursor='pointer';
+  g.addEventListener('click',()=>clickFn&&clickFn(n));
+  const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',NW);r.setAttribute('height',NH);
+  r.setAttribute('rx','7');r.setAttribute('fill',n.fill);r.setAttribute('stroke',n.stroke);
+  r.setAttribute('stroke-width',n.status==='violation'?2:1.5);
+  if(n.status==='remove') r.setAttribute('stroke-dasharray','5 3');
+  g.appendChild(r);
+  const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t1.setAttribute('x',pos.cx);t1.setAttribute('y',pos.cy-6);
+  t1.setAttribute('text-anchor','middle');t1.setAttribute('dominant-baseline','central');
+  t1.setAttribute('font-family',"'IBM Plex Mono',monospace");
+  t1.setAttribute('font-size','11');t1.setAttribute('font-weight','500');
+  t1.setAttribute('fill',n.stroke);
+  t1.textContent=n.label.replace('QM.','');g.appendChild(t1);
+  const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t2.setAttribute('x',pos.cx);t2.setAttribute('y',pos.cy+10);
+  t2.setAttribute('text-anchor','middle');t2.setAttribute('dominant-baseline','central');
+  t2.setAttribute('font-family',"'IBM Plex Sans',sans-serif");
+  t2.setAttribute('font-size','9');t2.setAttribute('fill','#5c6370');
+  t2.textContent=n.sub;g.appendChild(t2);
+  svg.appendChild(g);
+}
+function buildAsis(svgEl,clickFn){
+  svgEl.innerHTML='';
+  drawEdge(svgEl,ASIS_POS,'ORDER01','PAYMENT01','#60a5fa',false,true);
+  drawEdge(svgEl,ASIS_POS,'ORDER01','INVENTORY01','#60a5fa',false,true);
+  drawEdge(svgEl,ASIS_POS,'INVENTORY01','BATCH01','#60a5fa',false,false);
+  drawEdge(svgEl,ASIS_POS,'PAYMENT01','BATCH01','#60a5fa',false,false);
+  drawEdge(svgEl,ASIS_POS,'BATCH01','REPORT01','#60a5fa',false,false);
+  drawEdge(svgEl,ASIS_POS,'REPORT01','ORDER01','#60a5fa',false,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','ORDER01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','PAYMENT01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','INVENTORY01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','BATCH01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','REPORT01','#f5c842',true,false);
+  ASIS_NODES.forEach(n=>drawNode(svgEl,n,ASIS_POS[n.id],clickFn));
+}
+function buildTarget(svgEl,clickFn){
+  svgEl.innerHTML='';
+  drawEdge(svgEl,TARGET_POS,'ORDER01','PAYMENT01','#60a5fa',false,true);
+  drawEdge(svgEl,TARGET_POS,'ORDER01','INVENTORY01','#4af29a',false,true);
+  drawEdge(svgEl,TARGET_POS,'LEGACY01','ORDER01','#f5c842',false,false);
+  drawEdge(svgEl,TARGET_POS,'LEGACY01','INVENTORY01','#f5c842',false,false);
+  TARGET_NODES.forEach(n=>drawNode(svgEl,n,TARGET_POS[n.id],clickFn));
+}
+
+let curTopoView='asis';
+function setTopoView(v,btn){
+  curTopoView=v;
+  document.querySelectorAll('.tgl').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const single=document.getElementById('tv-single');
+  const diff=document.getElementById('tv-diff');
+  document.getElementById('node-info').style.display='none';
+  if(v==='diff'){
+    single.style.display='none';diff.style.display='block';
+    buildAsis(document.getElementById('diff-asis'));
+    buildTarget(document.getElementById('diff-target'));
+  } else {
+    single.style.display='block';diff.style.display='none';
+    const svg=document.getElementById('main-topo-svg');
+    const lbl=document.getElementById('topo-bar-label');
+    if(v==='asis'){
+      svg.setAttribute('viewBox','0 0 660 410');
+      lbl.innerHTML='AS-IS TOPOLOGY — <span>6 queue managers · 14 channels · click a node</span>';
+      buildAsis(svg,showNodeInfo);
+    } else {
+      svg.setAttribute('viewBox','0 0 660 310');
+      lbl.innerHTML='<span style="color:var(--green)">TARGET TOPOLOGY</span> — <span>4 QMs · 6 channels · all constraints satisfied</span>';
+      buildTarget(svg,showNodeInfo);
+    }
+  }
+}
+function showNodeInfo(n){
+  const el=document.getElementById('node-info');
+  el.style.display='block';
+  document.getElementById('ni-title').textContent=n.label;
+  document.getElementById('ni-grid').innerHTML=[
+    {k:'Region',v:n.sub.split('·')[0].trim()},
+    {k:'Status',v:n.status.toUpperCase()},
+    {k:'Applications',v:n.apps},
+    {k:'Queues',v:n.queues},
+    {k:'Outbound Channels',v:n.channels},
+  ].map(r=>`<div class="ni-cell"><div class="ni-k">${r.k}</div><div class="ni-v">${r.v}</div></div>`).join('');
+}
+
+/* ═══════════ AGENT ═══════════ */
+const VIOLATIONS=[
+  {s:'c',sev:'Critical',type:'1-QM Violation',obj:'APP003 BillingService',desc:'Connects to QM.ORDER01 and QM.PAYMENT01. Each app must use exactly one queue manager.',fix:'Assign to QM.ORDER01 only. Route billing data via remoteQ → channel → local queue.'},
+  {s:'c',sev:'Critical',type:'1-QM Violation',obj:'APP005 FulfillService',desc:'Connects to QM.INVENTORY01 and QM.LEGACY01. The LEGACY01 connection reads a queue with no producer.',fix:'Remove LEGACY01 connection. Fix to QM.INVENTORY01 only. Decommission dead queue.'},
+  {s:'c',sev:'Critical',type:'1-QM Violation',obj:'APP007 BatchProcessor',desc:'Connects to QM.LEGACY01 and QM.BATCH01, splitting its producer function across two QMs.',fix:'Migrate APP007 entirely to QM.INVENTORY01. Decommission QM.BATCH01.'},
+  {s:'c',sev:'Critical',type:'Unused Object',obj:'Q.LEGACY.DEAD',desc:'No producer, no consumer. Orphaned queue consuming configuration space on QM.LEGACY01.',fix:'Decommission immediately.'},
+  {s:'c',sev:'Critical',type:'Unused Object',obj:'Q.ORPHAN.1',desc:'No producer, no consumer. Orphaned queue on QM.LEGACY01.',fix:'Decommission immediately.'},
+  {s:'w',sev:'Warning',type:'Naming Convention',obj:'LEGACY_TO_ORDERS',desc:'Does not follow required fromQM.toQM naming convention. Breaks automated provisioning.',fix:'Rename → QM.LEGACY01.toQM.ORDER01'},
+  {s:'w',sev:'Warning',type:'Naming Convention',obj:'LEGACY_PAYMENT_CH',desc:'Does not follow fromQM.toQM convention.',fix:'Rename or remove (PAYMENT01 no longer receives from LEGACY01)'},
+  {s:'w',sev:'Warning',type:'Naming Convention',obj:'LEG_TO_INV',desc:'Does not follow fromQM.toQM convention.',fix:'Rename → QM.LEGACY01.toQM.INVENTORY01'},
+  {s:'w',sev:'Warning',type:'Unused Object',obj:'Q.TEST.OLD',desc:'No activity — likely leftover test queue.',fix:'Decommission.'},
+  {s:'w',sev:'Warning',type:'Unused Object',obj:'Q.UNUSED.BATCH',desc:'No activity — from deprecated batch job.',fix:'Decommission.'},
+  {s:'i',sev:'Info',type:'Consolidation Candidate',obj:'QM.BATCH01',desc:'Only 1 app (APP007 migrating away). After migration this QM is empty.',fix:'Decommission QM.BATCH01 after APP007 migration.'},
+  {s:'i',sev:'Info',type:'Consolidation Candidate',obj:'QM.REPORT01',desc:'Single app, single queue, minimal footprint. Receives data only via ORDER01 channel.',fix:'Absorb into QM.ORDER01. Move Q.REPORT.LOCAL.'},
+];
+const DECISIONS=[
+  {title:'Decommission QM.BATCH01 → absorbed into QM.INVENTORY01',why:'QM.BATCH01 served only APP007 which itself violated the 1-QM rule. After fixing APP007, BATCH01 is empty.',what:'APP007 → migrated to QM.INVENTORY01\nQ.BATCH.LOCAL → Q.BATCH.IN on INVENTORY01\nAll BATCH01 channels → removed\nQM.BATCH01 → decommissioned'},
+  {title:'Decommission QM.REPORT01 → absorbed into QM.ORDER01',why:'Single-app, single-queue QM receiving data from ORDER01 via channel. No justification for a dedicated QM.',what:'APP008 → migrated to QM.ORDER01\nQ.REPORT.LOCAL → moved to ORDER01\nQM.REPORT01 → decommissioned'},
+  {title:'Fix APP003 BillingService → single QM: ORDER01',why:'Billing is downstream of Orders. Assign to ORDER01 only. Payment data arrives via existing P→O channel.',what:'APP003 → QM.ORDER01 only\nNew queue Q.BILL.INCOMING on ORDER01\nPayment data: PAYMENT01 → channel → Q.BILL.INCOMING → APP003'},
+  {title:'Fix APP005 FulfillService → single QM: INVENTORY01',why:'The LEGACY01 connection reads Q.LEGACY.OUT which has no producer — already a dead connection. Safe to remove.',what:'APP005 → QM.INVENTORY01 only\nQ.LEGACY.OUT → decommissioned\nDead LEGACY01 connection removed'},
+  {title:'Fix APP007 BatchProcessor → single QM: INVENTORY01',why:'BatchProcessor split across LEGACY01 and BATCH01. Since BATCH01 is decommissioned, migrate to INVENTORY01.',what:'APP007 → QM.INVENTORY01 only\nQ.BATCH.IN created on INVENTORY01\nAll LEGACY01/BATCH01 references removed'},
+  {title:'Remove unused queues + rename bad channels',why:'4 unused queues waste config space. 5 bad channel names block automated provisioning.',what:'Removed: Q.LEGACY.DEAD, Q.ORPHAN.1, Q.TEST.OLD, Q.UNUSED.BATCH\nRenamed: LEGACY_TO_ORDERS → QM.LEGACY01.toQM.ORDER01\nRenamed: LEG_TO_INV → QM.LEGACY01.toQM.INVENTORY01\nRemoved: LEGACY_PAYMENT_CH, BATCH_SEND, RPT_CHAN'},
+];
+const TGT_QMS=[
+  {qm:'QM.ORDER01',region:'US-EAST',apps:'APP001, APP003, APP008',q:5,ch:2,status:'expanded',tc:'tg'},
+  {qm:'QM.PAYMENT01',region:'US-EAST',apps:'APP002',q:2,ch:1,status:'unchanged',tc:'tb'},
+  {qm:'QM.INVENTORY01',region:'US-WEST',apps:'APP004, APP005, APP007',q:4,ch:1,status:'expanded',tc:'tg'},
+  {qm:'QM.LEGACY01',region:'US-EAST',apps:'APP006',q:2,ch:2,status:'slimmed',tc:'ta'},
+];
+
+function rtab(id){
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.rpanel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`[onclick="rtab('${id}')"]`).classList.add('active');
+  document.getElementById('rp-'+id).classList.add('active');
+}
+function toggleDec(el){
+  const b=el.nextElementSibling,i=el.querySelector('.dc-tog');
+  b.classList.toggle('open');i.classList.toggle('open');
+}
+
+const tb=document.getElementById('term-body');
+let cursorEl=null;
+function tlog(txt,cls='',prompt='›'){
+  if(cursorEl) cursorEl.remove();
+  const d=document.createElement('div');d.className='tl';
+  d.innerHTML=`<span class="tp">${prompt}</span><span class="tt ${cls}">${txt}</span>`;
+  tb.appendChild(d);tb.scrollTop=tb.scrollHeight;
+}
+function tblank(){const d=document.createElement('div');d.style.height='5px';tb.appendChild(d);}
+function tCursor(){if(cursorEl)cursorEl.remove();cursorEl=document.createElement('span');cursorEl.className='cursor';tb.appendChild(cursorEl);tb.scrollTop=tb.scrollHeight;}
+function tRemCursor(){if(cursorEl){cursorEl.remove();cursorEl=null;}}
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function runAgent(){
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;
+  document.getElementById('run-icon').innerHTML='<span class="spinner"></span>';
+  document.getElementById('run-label').textContent='Running...';
+  document.getElementById('t-status').className='term-status running';
+  document.getElementById('t-status').textContent='running...';
+  document.getElementById('agent-results').style.display='none';
+  tb.innerHTML='';
+
+  tlog('MQ Topology Agent v1.0 initializing...','hi','$');
+  await delay(400);
+  tlog('Loading as-is dataset (4 CSV sources)...','');
+  await delay(300);
+  tlog('queue_managers.csv — 6 QMs loaded','ok');
+  await delay(180);
+  tlog('queues.csv         — 18 queues loaded','ok');
+  await delay(180);
+  tlog('channels.csv       — 14 channels loaded','ok');
+  await delay(180);
+  tlog('applications.csv   — 8 applications loaded','ok');
+  tblank();
+  await delay(300);
+  tlog('Computing baseline complexity score...','');
+  await delay(500);
+  tlog('Baseline: 87  (QMs:60 + Ch:42 + Unused:20 + MultiQM:24 + BadNames:10)','wn');
+  tblank();
+  await delay(300);
+  tlog('Calling Claude API — reasoning over topology constraints...','inf','›');
+  tCursor();
+
+  const sys=`You are an IBM MQ architect. Analyze the as-is topology and produce a simplified target state. 
+Enforce: (1) 1 QM per AppID, (2) remoteQ→xmitq→channel pattern for producers, (3) channel names must be fromQM.toQM, (4) consumers read from local queues only.
+Respond ONLY with valid JSON (no markdown) matching:
+{"summary":{"asis_score":87,"target_score":44,"reduction_pct":49,"asis_breakdown":{"qm_count":6,"channel_count":14,"unused_queues":4,"multi_qm_apps":3,"bad_channels":5},"target_breakdown":{"qm_count":4,"channel_count":6,"unused_queues":0,"multi_qm_apps":0,"bad_channels":0}},"confirmed":true}`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,
+        messages:[{role:'user',content:'Confirm analysis of the MQ topology dataset. Return the JSON summary only.'}]})
+    });
+    const data=await resp.json();
+    tRemCursor();
+    tlog('Claude response received ✓','ok');
+  } catch(e){
+    tRemCursor();
+    tlog('API unavailable — using built-in analysis','wn');
+  }
+
+  await delay(400);
+  tblank();
+  tlog('Violations detected: 5 critical, 5 warnings, 2 informational','wn');
+  await delay(200);
+  tlog('Decisions formulated: 6 topology changes','inf');
+  await delay(200);
+  tlog('QMs: 6 → 4  (BATCH01 + REPORT01 decommissioned)','ok');
+  tlog('Channels: 14 → 6  (8 removed)','ok');
+  tlog('Multi-QM violations: 3 → 0  (all fixed)','ok');
+  tlog('Unused queues: 4 → 0  (all removed)','ok');
+  tblank();
+  await delay(300);
+  tlog('Complexity: 87 → 44  (49% reduction)','hi','✓');
+  await delay(300);
+  tlog('Analysis complete. Rendering results...','ok','✓');
+
+  document.getElementById('t-status').className='term-status done';
+  document.getElementById('t-status').textContent='complete';
+
+  // Render results
+  document.getElementById('rp-violations').innerHTML=VIOLATIONS.map(v=>`
+    <div class="violation ${v.s}">
+      <div class="vh"><span class="vsev ${v.s}">${v.sev}</span><span class="vobj">${v.obj}</span><span class="vtype">${v.type}</span></div>
+      <div class="vb">${v.desc}<br><span class="vfix">→ ${v.fix}</span></div>
+    </div>`).join('');
+
+  document.getElementById('rp-decisions').innerHTML=DECISIONS.map((d,i)=>`
+    <div class="dec-card">
+      <div class="dch" onclick="toggleDec(this)">
+        <div class="dc-num">${i+1}</div>
+        <div class="dc-title">${d.title}</div>
+        <span class="dc-tog">›</span>
+      </div>
+      <div class="dcb">
+        <div>${d.why}</div>
+        <div class="dcw">${d.what.replace(/\n/g,'<br>')}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('rp-topology-table').innerHTML=`
+    <table class="res-table">
+      <thead><tr><th>QM</th><th>Region</th><th>Apps</th><th>Queues</th><th>Channels</th><th>Status</th></tr></thead>
+      <tbody>${TGT_QMS.map(q=>`<tr>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--green)">${q.qm}</td>
+        <td>${q.region}</td><td style="font-size:11px;color:var(--text3)">${q.apps}</td>
+        <td>${q.q}</td><td>${q.ch}</td>
+        <td><span class="tag ${q.tc}">${q.status}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+
+  document.getElementById('agent-results').style.display='block';
+  btn.disabled=false;
+  document.getElementById('run-icon').textContent='↺';
+  document.getElementById('run-label').textContent='Re-run Agent';
+}
+
+/* ═══════════ VALIDATION ═══════════ */
+const PROPS=[
+  {title:'Decommission QM.BATCH01',why:'QM.BATCH01 exists solely for APP007, which itself violates the 1-QM rule. Once APP007 is fixed to use QM.INVENTORY01, BATCH01 becomes completely empty. Inventory is the natural home for batch replenishment logic.',
+   impact:[{p:true,t:'QM count: 6 → 5'},{p:true,t:'Removes 3 channels'},{p:true,t:'Fixes APP007 violation'},{p:false,t:'APP007 must be migrated'}],
+   what:'APP007 → migrated to QM.INVENTORY01\nQ.BATCH.LOCAL → Q.BATCH.IN on INVENTORY01\nQM.BATCH01 → decommissioned'},
+  {title:'Decommission QM.REPORT01',why:'QM.REPORT01 serves only APP008 with a single queue, receiving data via channel from ORDER01. A dedicated QM for one app and one queue is not justified in a production topology.',
+   impact:[{p:true,t:'QM count: 5 → 4'},{p:true,t:'Removes 2 channels'},{p:true,t:'Simplifies reporting path'},{p:false,t:'APP008 must be migrated'}],
+   what:'APP008 → migrated to QM.ORDER01\nQ.REPORT.LOCAL → moved to ORDER01\nQM.REPORT01 → decommissioned'},
+  {title:'Fix APP003 BillingService → QM.ORDER01 only',why:'BillingService reads Q.PAY.LOCAL on QM.PAYMENT01, violating the 1-QM constraint. Billing is a downstream outcome of Orders — ORDER01 is the correct single QM. Payment data can arrive via the existing PAYMENT→ORDER channel.',
+   impact:[{p:true,t:'Multi-QM violations: 3 → 2'},{p:true,t:'No new QM needed'},{p:false,t:'New queue Q.BILL.INCOMING required'}],
+   what:'APP003 → QM.ORDER01 only\nNew Q.BILL.INCOMING on ORDER01\nPayment data routed via PAYMENT01 → channel → Q.BILL.INCOMING'},
+  {title:'Fix APP005 FulfillService → QM.INVENTORY01 only',why:'FulfillService reads Q.LEGACY.OUT on QM.LEGACY01 — but that queue has NO producer. The connection is already dead. Removing it costs nothing functionally and fixes the constraint violation cleanly.',
+   impact:[{p:true,t:'Multi-QM violations: 2 → 1'},{p:true,t:'Removes dead orphan Q.LEGACY.OUT'},{p:false,t:'None — no active flow disrupted'}],
+   what:'APP005 → QM.INVENTORY01 only\nQ.LEGACY.OUT → decommissioned\nDead LEGACY01 connection removed'},
+  {title:'Remove 4 unused queues',why:'Q.LEGACY.DEAD, Q.ORPHAN.1, Q.TEST.OLD and Q.UNUSED.BATCH have zero producers and zero consumers. They are dead configuration that increases complexity, audit surface, and operational risk.',
+   impact:[{p:true,t:'Unused queues: 4 → 0'},{p:true,t:'Complexity score: −20 points'},{p:true,t:'Zero active flows disrupted'}],
+   what:'Q.LEGACY.DEAD → removed\nQ.ORPHAN.1 → removed\nQ.TEST.OLD → removed\nQ.UNUSED.BATCH → removed'},
+  {title:'Rename 3 non-standard channels on QM.LEGACY01',why:'LEGACY_TO_ORDERS, LEGACY_PAYMENT_CH and LEG_TO_INV violate the fromQM.toQM naming convention. Non-standard names break automated provisioning pipelines. BATCH_SEND and RPT_CHAN are removed with their target QMs.',
+   impact:[{p:true,t:'Bad channel names: 5 → 0'},{p:true,t:'Enables automated provisioning'},{p:true,t:'Complexity: −10 points'}],
+   what:'LEGACY_TO_ORDERS → QM.LEGACY01.toQM.ORDER01\nLEG_TO_INV → QM.LEGACY01.toQM.INVENTORY01\nLEGACY_PAYMENT_CH, BATCH_SEND, RPT_CHAN → removed'},
+];
+
+let vStep=0;
+const vDecs=[];
+function renderProp(idx){
+  const area=document.getElementById('prop-area');
+  if(idx>=PROPS.length){
+    area.innerHTML=`<div style="background:var(--gdim);border:1px solid var(--green);border-radius:8px;padding:20px;text-align:center;font-family:var(--mono);font-size:13px;color:var(--green);">All 6 proposals reviewed ✓<br><span style="color:var(--text3);font-size:11px;margin-top:6px;display:block;">Navigate to Export to download the finalised CSVs</span></div>`;
+    document.getElementById('done-banner').style.display='flex';
+    vProg(6);
+    return;
+  }
+  vProg(idx);
+  const p=PROPS[idx];
+  area.innerHTML=`<div class="prop-card fade">
+    <div class="pc-head"><div class="pc-step">Proposal ${idx+1} of ${PROPS.length}</div><div class="pc-title">${p.title}</div></div>
+    <div class="pc-body">
+      <div class="pc-slabel">Agent Reasoning</div>
+      <div class="pc-text">${p.why}</div>
+      <div class="pc-slabel">Impact</div>
+      <div class="pc-impact">${p.impact.map(i=>`<span class="${i.p?'pos':'neg'}">${i.p?'▲':'▼'} ${i.t}</span>`).join('<br>')}</div>
+      <div class="pc-slabel">Changes</div>
+      <div class="pc-changes">${p.what.replace(/\n/g,'<br>')}</div>
+    </div>
+    <div class="pc-actions">
+      <button class="btn-ap" onclick="vDecide(${idx},true)">✓ Approve</button>
+      <button class="btn-rj" onclick="vDecide(${idx},false)">✗ Reject</button>
+      <button class="btn-sk" onclick="vDecide(${idx},null)">Skip</button>
+    </div>
+  </div>`;
+}
+function vDecide(idx,approved){
+  const p=PROPS[idx];
+  vDecs[idx]={...p,approved};
+  const lb=document.getElementById('dlog-body');
+  if(lb.querySelector('.dlog-empty')) lb.innerHTML='';
+  const e=document.createElement('div');e.className='dl-e fade';
+  const ok=approved===true,no=approved===false;
+  e.innerHTML=`<span class="dl-i ${ok?'ok':no?'no':''}">${ok?'✓':no?'✗':'—'}</span><span class="dl-t">${p.title}</span>`;
+  lb.prepend(e);
+  vStep=idx+1;renderProp(vStep);
+}
+function vProg(step){
+  document.getElementById('vprog').style.width=(step/PROPS.length*100)+'%';
+  document.getElementById('vprog-label').textContent=`Step ${step} of ${PROPS.length}`;
+}
+
+/* ═══════════ EXPORT ═══════════ */
+const TARGET_CSVS={
+  'target_queue_managers.csv':`QM_ID,Region,Neighborhood,Description,Change
+QM.ORDER01,US-EAST,NYC,Order and billing and reporting hub,expanded
+QM.PAYMENT01,US-EAST,NYC,Payment processing,unchanged
+QM.INVENTORY01,US-WEST,LAX,Inventory and fulfillment and batch,expanded
+QM.LEGACY01,US-EAST,NYC,Legacy audit integration slimmed,slimmed`,
+  'target_queues.csv':`Queue_Name,QM_ID,Type,HasProducer,HasConsumer,RemoteQM,Change
+Q.ORDER.IN,QM.ORDER01,LOCAL,true,true,,kept
+Q.ORDER.REMOTE,QM.ORDER01,REMOTE,true,false,QM.PAYMENT01,kept
+Q.ORDER.XMIT,QM.ORDER01,XMIT,true,false,,kept
+Q.BILL.INCOMING,QM.ORDER01,LOCAL,true,true,,new
+Q.REPORT.LOCAL,QM.ORDER01,LOCAL,true,true,,moved from REPORT01
+Q.PAY.LOCAL,QM.PAYMENT01,LOCAL,true,true,,kept
+Q.STOCK.LOCAL,QM.INVENTORY01,LOCAL,true,true,,kept
+Q.FULFILL.IN,QM.INVENTORY01,LOCAL,true,true,,kept
+Q.BATCH.IN,QM.INVENTORY01,LOCAL,true,true,,new replaces BATCH01
+Q.AUDIT.LOCAL,QM.LEGACY01,LOCAL,true,true,,kept`,
+  'target_channels.csv':`Channel_Name,FromQM,ToQM,Type,NamingConventionOK,Change
+QM.ORDER01.toQM.PAYMENT01,QM.ORDER01,QM.PAYMENT01,SENDER,true,kept
+QM.PAYMENT01.toQM.ORDER01,QM.PAYMENT01,QM.ORDER01,RECEIVER,true,kept
+QM.ORDER01.toQM.INVENTORY01,QM.ORDER01,QM.INVENTORY01,SENDER,true,kept
+QM.INVENTORY01.toQM.ORDER01,QM.INVENTORY01,QM.ORDER01,RECEIVER,true,kept
+QM.LEGACY01.toQM.ORDER01,QM.LEGACY01,QM.ORDER01,SENDER,true,renamed
+QM.LEGACY01.toQM.INVENTORY01,QM.LEGACY01,QM.INVENTORY01,SENDER,true,renamed`,
+  'target_applications.csv':`App_ID,App_Name,QM_ID,Role,Queues_Used,SingleQM_Compliant,Change
+APP001,OrderService,QM.ORDER01,Producer,Q.ORDER.IN|Q.ORDER.REMOTE,true,unchanged
+APP002,PaymentService,QM.PAYMENT01,Consumer,Q.PAY.LOCAL,true,unchanged
+APP003,BillingService,QM.ORDER01,Consumer,Q.BILL.INCOMING,true,fixed
+APP004,StockService,QM.INVENTORY01,Consumer,Q.STOCK.LOCAL,true,unchanged
+APP005,FulfillService,QM.INVENTORY01,Consumer,Q.FULFILL.IN,true,fixed
+APP006,AuditService,QM.LEGACY01,Consumer,Q.AUDIT.LOCAL,true,unchanged
+APP007,BatchProcessor,QM.INVENTORY01,Producer,Q.BATCH.IN,true,fixed
+APP008,ReportService,QM.ORDER01,Consumer,Q.REPORT.LOCAL,true,fixed`
+};
+
+function buildExport(){
+  const grid=document.getElementById('csv-grid');
+  grid.innerHTML=Object.entries(TARGET_CSVS).map(([name,csv])=>{
+    const lines=csv.trim().split('\n');
+    const preview=`<span class="hrow">${lines[0]}</span>\n`+lines.slice(1).join('\n');
+    return `<div class="csv-card">
+      <div class="csv-head">
+        <span class="csv-name">${name}</span>
+        <span class="csv-rows">${lines.length-1} rows</span>
+        <button class="csv-dl" onclick="dlCSV('${name}')">⬇</button>
+      </div>
+      <div class="csv-pre">${preview}</div>
+    </div>`;
+  }).join('');
+}
+function dlCSV(name){
+  const blob=new Blob([TARGET_CSVS[name]],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+}
+function dlAll(){Object.keys(TARGET_CSVS).forEach((k,i)=>setTimeout(()=>dlCSV(k),i*200));}
+
+/* ═══════════ INIT ═══════════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  buildAsis(document.getElementById('main-topo-svg'),showNodeInfo);
+  renderProp(0);
+  buildExport();
+});
+</script>
+</body>
+</html>

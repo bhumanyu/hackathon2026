@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MQ Topology Visualizer & Validation</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0e0f11; --bg2:#161719; --bg3:#1e2022; --bg4:#252729;
+  --border:#2a2d31; --border2:#353a40;
+  --text:#e8eaed; --text2:#9aa0ab; --text3:#5c6370;
+  --green:#4af29a; --gdim:#1a3d2b; --gtext:#0a1a12;
+  --amber:#f5c842; --adim:#3d3010;
+  --red:#ff6b6b; --rdim:#3d1515;
+  --blue:#60a5fa; --bdim:#1a2a3d;
+  --purple:#a78bfa;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+
+/* ── Layout ── */
+.topbar{display:flex;align-items:center;padding:0 24px;height:54px;border-bottom:1px solid var(--border);gap:12px;position:sticky;top:0;z-index:100;background:var(--bg);}
+.logo{font-family:var(--mono);font-size:13px;color:var(--green);letter-spacing:-.02em;}
+.sep{width:1px;height:18px;background:var(--border);}
+.tbar-title{font-size:13px;color:var(--text2);}
+.badge{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:4px;}
+
+.nav{display:flex;gap:2px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg);}
+.navbtn{padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);font-family:var(--mono);font-size:12px;cursor:pointer;transition:color .15s;}
+.navbtn.active{color:var(--green);border-bottom-color:var(--green);}
+.navbtn:hover:not(.active){color:var(--text2);}
+
+.section{display:none;padding:24px;}
+.section.active{display:block;}
+
+/* ── Topology ── */
+.topo-header{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.topo-header h2{font-size:16px;font-weight:500;flex:1;}
+.toggle-group{display:flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:3px;}
+.tgl{padding:5px 14px;border:none;background:none;color:var(--text3);font-family:var(--mono);font-size:11px;cursor:pointer;border-radius:4px;transition:all .15s;}
+.tgl.active{background:var(--bg);color:var(--green);border:1px solid var(--border);}
+
+.topo-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;}
+.topo-canvas-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;}
+.topo-label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:10px 14px;border-bottom:1px solid var(--border);}
+.topo-label span{color:var(--text2);}
+svg.topo{width:100%;display:block;}
+
+.legend{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.legend-title{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
+.leg-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
+.leg-item:last-child{border-bottom:none;}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.leg-line{width:24px;height:2px;flex-shrink:0;}
+.leg-line.dashed{background:repeating-linear-gradient(90deg,currentColor 0,currentColor 4px,transparent 4px,transparent 8px);}
+
+.node-detail{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:12px;display:none;}
+.nd-title{font-family:var(--mono);font-size:12px;color:var(--green);margin-bottom:10px;}
+.nd-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);}
+.nd-row:last-child{border-bottom:none;}
+.nd-key{color:var(--text3);}
+.nd-val{color:var(--text2);text-align:right;font-family:var(--mono);font-size:11px;}
+
+/* score strip */
+.score-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;}
+.sc{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;}
+.sc-label{font-size:11px;color:var(--text3);margin-bottom:4px;font-family:var(--mono);}
+.sc-val{font-size:20px;font-weight:500;font-family:var(--mono);}
+.sc-val.red{color:var(--red);}
+.sc-val.green{color:var(--green);}
+.sc-val.amber{color:var(--amber);}
+.sc-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* ── Validation ── */
+.val-progress{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.prog-bar-bg{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.prog-bar-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.prog-label{font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap;}
+
+.val-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;}
+
+.proposal-card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+.prop-head{padding:14px 16px;background:var(--bg4);border-bottom:1px solid var(--border);}
+.prop-step{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.prop-title{font-size:15px;font-weight:500;}
+.prop-body{padding:16px;}
+.prop-section{margin-bottom:14px;}
+.prop-section-label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.prop-text{font-size:13px;color:var(--text2);line-height:1.7;}
+.prop-impact{background:var(--bg2);border-radius:6px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--text3);line-height:1.9;}
+.prop-impact .pos{color:var(--green);}
+.prop-impact .neg{color:var(--red);}
+
+.prop-actions{display:flex;gap:8px;padding:14px 16px;border-top:1px solid var(--border);background:var(--bg4);}
+.btn-approve{flex:1;padding:10px;background:var(--green);color:var(--gtext);border:none;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+.btn-approve:hover{opacity:.88;}
+.btn-reject{flex:1;padding:10px;background:none;color:var(--red);border:1px solid var(--rdim);border-radius:6px;font-family:var(--mono);font-size:12px;cursor:pointer;transition:background .15s;}
+.btn-reject:hover{background:var(--rdim);}
+.btn-skip{padding:10px 16px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:12px;cursor:pointer;}
+.btn-skip:hover{color:var(--text2);}
+
+.decision-log{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.dl-header{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg4);}
+.dl-title{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+.dl-body{padding:10px;}
+.dl-entry{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.dl-entry:last-child{border-bottom:none;}
+.dl-icon{font-family:var(--mono);font-size:12px;flex-shrink:0;margin-top:1px;}
+.dl-icon.ok{color:var(--green);}
+.dl-icon.no{color:var(--red);}
+.dl-text{color:var(--text2);line-height:1.5;}
+.dl-empty{font-size:12px;color:var(--text3);text-align:center;padding:20px;font-family:var(--mono);}
+
+.completed-banner{background:var(--gdim);border:1px solid var(--green);border-radius:8px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;display:none;}
+.completed-banner.show{display:flex;}
+.cb-icon{color:var(--green);font-size:18px;}
+.cb-text{font-size:13px;color:var(--green);}
+.cb-btn{margin-left:auto;padding:6px 16px;background:var(--green);color:var(--gtext);border:none;border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;}
+
+/* ── Export ── */
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.exp-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.exp-head{padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg4);display:flex;align-items:center;justify-content:space-between;}
+.exp-title{font-family:var(--mono);font-size:11px;color:var(--green);}
+.exp-rows{font-size:11px;color:var(--text3);}
+.exp-csv{padding:12px 14px;font-family:var(--mono);font-size:10px;color:var(--text3);white-space:pre;line-height:1.8;max-height:140px;overflow-y:auto;overflow-x:auto;}
+.exp-csv .hdr{color:var(--blue);}
+.dl-btn{padding:5px 12px;background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer;}
+.dl-btn:hover{border-color:var(--green);color:var(--green);}
+.dl-all{width:100%;padding:12px;background:var(--green);color:var(--gtext);border:none;border-radius:6px;font-family:var(--mono);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px;}
+.dl-all:hover{opacity:.88;}
+
+.summary-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px;}
+.sum-title{font-family:var(--mono);font-size:11px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;}
+.sum-formula{font-family:var(--mono);font-size:11px;line-height:2;padding:10px 12px;background:var(--bg2);border-radius:6px;border-left:2px solid var(--green);}
+.sum-formula .asis{color:var(--red);}
+.sum-formula .tgt{color:var(--green);}
+.sum-formula .bold{color:var(--text);font-weight:500;}
+
+/* ── Misc ── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fade-in{animation:fadeIn .3s ease both;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">MQ//VISUAL</span>
+  <div class="sep"></div>
+  <span class="tbar-title">Topology Visualizer &amp; Human-in-the-Loop Validation</span>
+  <span class="badge">IBM MQ Hackathon</span>
+</div>
+
+<div class="nav">
+  <button class="navbtn active" onclick="nav('topology')">Topology</button>
+  <button class="navbtn" onclick="nav('validate')">Validate</button>
+  <button class="navbtn" onclick="nav('export')">Export</button>
+</div>
+
+<!-- ══════════════════ TOPOLOGY ══════════════════ -->
+<div class="section active" id="s-topology">
+
+  <div class="topo-header">
+    <h2>MQ Topology Graph</h2>
+    <div class="toggle-group">
+      <button class="tgl active" onclick="setView('asis',this)">As-Is (6 QMs)</button>
+      <button class="tgl" onclick="setView('target',this)">Target (4 QMs)</button>
+      <button class="tgl" onclick="setView('diff',this)">Side-by-Side</button>
+    </div>
+  </div>
+
+  <div class="score-strip">
+    <div class="sc"><div class="sc-label">Complexity Score</div><div class="sc-val red" id="disp-asis-score">87</div><div class="sc-sub">as-is baseline</div></div>
+    <div class="sc"><div class="sc-label">Target Score</div><div class="sc-val green">44</div><div class="sc-sub">after simplification</div></div>
+    <div class="sc"><div class="sc-label">Reduction</div><div class="sc-val amber">49%</div><div class="sc-sub">simpler topology</div></div>
+    <div class="sc"><div class="sc-label">Violations Fixed</div><div class="sc-val green">12</div><div class="sc-sub">all constraints met</div></div>
+  </div>
+
+  <!-- Single view -->
+  <div id="single-view" class="topo-layout">
+    <div class="topo-canvas-wrap">
+      <div class="topo-label" id="topo-canvas-label">AS-IS TOPOLOGY — <span>6 queue managers · 14 channels · 8 applications</span></div>
+      <svg class="topo" id="topo-svg" viewBox="0 0 660 400"></svg>
+    </div>
+    <div>
+      <div class="legend">
+        <div class="legend-title">Legend</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#185FA5;border:1.5px solid #60a5fa;"></div>Active Queue Manager</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#3d1515;border:1.5px solid #ff6b6b;"></div>Constraint violation</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#252729;border:1.5px dashed #5c6370;"></div>To be decommissioned</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#1a3d2b;border:1.5px solid #4af29a;"></div>Expanded / new</div>
+        <div class="leg-item"><div class="leg-line" style="height:2px;background:#60a5fa;"></div>Good channel (named correctly)</div>
+        <div class="leg-item"><div class="leg-line dashed" style="color:#f5c842;height:0;border-bottom:2px dashed;"></div>Bad channel name / violation</div>
+      </div>
+      <div class="node-detail" id="node-detail">
+        <div class="nd-title" id="nd-title">—</div>
+        <div id="nd-rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diff view -->
+  <div id="diff-view" style="display:none;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="topo-canvas-wrap">
+        <div class="topo-label">AS-IS — <span>6 QMs · 14 channels</span></div>
+        <svg class="topo" id="diff-asis-svg" viewBox="0 0 660 400"></svg>
+      </div>
+      <div class="topo-canvas-wrap">
+        <div class="topo-label" style="color:var(--green)">TARGET STATE — <span style="color:var(--text3)">4 QMs · 6 channels</span></div>
+        <svg class="topo" id="diff-target-svg" viewBox="0 0 660 310"></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ VALIDATION ══════════════════ -->
+<div class="section" id="s-validate">
+
+  <div class="completed-banner" id="comp-banner">
+    <span class="cb-icon">✓</span>
+    <div class="cb-text">All decisions reviewed — target state finalised. Go to Export to download CSVs.</div>
+    <button class="cb-btn" onclick="nav('export')">Export →</button>
+  </div>
+
+  <div class="val-progress">
+    <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-fill" style="width:0%"></div></div>
+    <span class="prog-label" id="prog-label">Step 0 of 6</span>
+  </div>
+
+  <div class="val-layout">
+    <div id="proposal-area"></div>
+    <div class="decision-log">
+      <div class="dl-header"><div class="dl-title">Decision Log</div></div>
+      <div class="dl-body" id="decision-log"><div class="dl-empty">No decisions yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ EXPORT ══════════════════ -->
+<div class="section" id="s-export">
+
+  <div class="summary-box">
+    <div class="sum-title">Complexity Analysis</div>
+    <div class="sum-formula" id="sum-formula">
+      <span style="color:var(--text3)">// Score = (QM×10) + (Channels×3) + (UnusedQueues×5) + (MultiQMApps×8) + (BadChannelNames×2)</span>
+      <span class="asis">As-Is  = (6×10)+(14×3)+(4×5)+(3×8)+(5×2) = 60+42+20+24+10 = 87</span>
+      <span class="tgt">Target = (4×10)+(6×3)+(0×5)+(0×8)+(0×2)  = 40+18+0+0+0   = 44</span>
+      <span class="bold">Reduction: 43 points — 49% simpler</span>
+    </div>
+  </div>
+
+  <button class="dl-all" onclick="downloadAll()">⬇ Download All Target CSVs</button>
+
+  <div class="export-grid" id="export-grid"></div>
+
+  <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:16px;">
+    <div class="sum-title">Approved Decisions</div>
+    <div id="export-decisions" style="font-size:12px;color:var(--text2);line-height:1.9;"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════ */
+const ASIS_NODES = [
+  {id:'ORDER01',   label:'QM.ORDER01',    region:'US-EAST', apps:'APP001, APP003', queues:4, channels:3, status:'active',   color:'#185FA5', stroke:'#60a5fa'},
+  {id:'PAYMENT01', label:'QM.PAYMENT01',  region:'US-EAST', apps:'APP002, APP003', queues:3, channels:2, status:'active',   color:'#185FA5', stroke:'#60a5fa'},
+  {id:'INVENTORY01',label:'QM.INVENTORY01',region:'US-WEST',apps:'APP004, APP005', queues:3, channels:2, status:'active',   color:'#185FA5', stroke:'#60a5fa'},
+  {id:'LEGACY01',  label:'QM.LEGACY01',   region:'US-EAST', apps:'APP005–007',     queues:5, channels:5, status:'violation',color:'#3d1515', stroke:'#ff6b6b'},
+  {id:'BATCH01',   label:'QM.BATCH01',    region:'EU-WEST', apps:'APP007',         queues:2, channels:1, status:'remove',   color:'#1e2022', stroke:'#5c6370'},
+  {id:'REPORT01',  label:'QM.REPORT01',   region:'EU-WEST', apps:'APP008',         queues:1, channels:1, status:'remove',   color:'#1e2022', stroke:'#5c6370'},
+];
+const TARGET_NODES = [
+  {id:'ORDER01',    label:'QM.ORDER01',    region:'US-EAST', apps:'APP001,003,008', queues:5, channels:2, status:'expanded', color:'#0f2d1a', stroke:'#4af29a'},
+  {id:'PAYMENT01',  label:'QM.PAYMENT01',  region:'US-EAST', apps:'APP002',         queues:2, channels:1, status:'active',   color:'#185FA5', stroke:'#60a5fa'},
+  {id:'INVENTORY01',label:'QM.INVENTORY01',region:'US-WEST', apps:'APP004,005,007', queues:4, channels:1, status:'expanded', color:'#0f2d1a', stroke:'#4af29a'},
+  {id:'LEGACY01',   label:'QM.LEGACY01',   region:'US-EAST', apps:'APP006',         queues:2, channels:2, status:'slimmed',  color:'#2a2000', stroke:'#f5c842'},
+];
+
+// node box: w=140, h=46 centered at cx,cy
+const ASIS_POS = {
+  ORDER01:    {cx:170, cy:90},
+  PAYMENT01:  {cx:450, cy:90},
+  INVENTORY01:{cx:110, cy:260},
+  LEGACY01:   {cx:310, cy:340},
+  BATCH01:    {cx:510, cy:230},
+  REPORT01:   {cx:580, cy:130},
+};
+const TARGET_POS = {
+  ORDER01:    {cx:180, cy:90},
+  PAYMENT01:  {cx:470, cy:90},
+  INVENTORY01:{cx:130, cy:240},
+  LEGACY01:   {cx:460, cy:240},
+};
+
+const NW=140, NH=46;
+function nr(cx,cy){return{x:cx-NW/2,y:cy-NH/2,w:NW,h:NH};}
+function edgePt(cx,cy,targetCx,targetCy){
+  // Return point on rect boundary toward target
+  const dx=targetCx-cx, dy=targetCy-cy;
+  const sx=NW/2, sy=NH/2;
+  const t=Math.min(sx/Math.abs(dx||.001), sy/Math.abs(dy||.001));
+  return{x:cx+dx*t, y:cy+dy*t};
+}
+
+function arrow(svg,x1,y1,x2,y2,color,dashed){
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  const dx=x2-x1,dy=y2-y1;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  const mx=(x1+x2)/2,my=(y1+y2)/2;
+  const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+  // quadratic curve with slight perpendicular offset
+  const px=-dy/len*18, py=dx/len*18;
+  const d=`M${x1},${y1} Q${mx+px},${my+py} ${x2},${y2}`;
+  path.setAttribute('d',d);
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke',color);
+  path.setAttribute('stroke-width','1.5');
+  if(dashed) path.setAttribute('stroke-dasharray','6 4');
+  path.setAttribute('marker-end',`url(#ah-${color.replace('#','')})`);
+  g.appendChild(path);
+  return g;
+}
+
+function ensureMarker(svg,color){
+  const safeId='ah-'+color.replace('#','');
+  if(svg.querySelector('#'+safeId)) return;
+  let defs=svg.querySelector('defs');
+  if(!defs){defs=document.createElementNS('http://www.w3.org/2000/svg','defs');svg.prepend(defs);}
+  const m=document.createElementNS('http://www.w3.org/2000/svg','marker');
+  m.setAttribute('id',safeId);
+  m.setAttribute('viewBox','0 0 10 10');
+  m.setAttribute('refX','8');m.setAttribute('refY','5');
+  m.setAttribute('markerWidth','5');m.setAttribute('markerHeight','5');
+  m.setAttribute('orient','auto-start-reverse');
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d','M2 1L8 5L2 9');
+  p.setAttribute('fill','none');
+  p.setAttribute('stroke',color);
+  p.setAttribute('stroke-width','1.8');
+  p.setAttribute('stroke-linecap','round');
+  m.appendChild(p); defs.appendChild(m);
+}
+
+function drawNode(svg,n,pos,clickable){
+  const r=nr(pos.cx,pos.cy);
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('data-id',n.id);
+  if(clickable){g.style.cursor='pointer';g.addEventListener('click',()=>showNodeDetail(n));}
+  const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x',r.x);rect.setAttribute('y',r.y);
+  rect.setAttribute('width',r.w);rect.setAttribute('height',r.h);
+  rect.setAttribute('rx','7');
+  rect.setAttribute('fill',n.color);
+  rect.setAttribute('stroke',n.stroke);
+  rect.setAttribute('stroke-width',n.status==='violation'?2:1.5);
+  if(n.status==='remove') rect.setAttribute('stroke-dasharray','5 3');
+  g.appendChild(rect);
+  const t1=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t1.setAttribute('x',pos.cx);t1.setAttribute('y',pos.cy-6);
+  t1.setAttribute('text-anchor','middle');t1.setAttribute('dominant-baseline','central');
+  t1.setAttribute('font-family',"'IBM Plex Mono',monospace");
+  t1.setAttribute('font-size','11');t1.setAttribute('font-weight','500');
+  t1.setAttribute('fill',n.stroke);
+  t1.textContent=n.label.replace('QM.','');
+  g.appendChild(t1);
+  const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t2.setAttribute('x',pos.cx);t2.setAttribute('y',pos.cy+10);
+  t2.setAttribute('text-anchor','middle');t2.setAttribute('dominant-baseline','central');
+  t2.setAttribute('font-family',"'IBM Plex Sans',sans-serif");
+  t2.setAttribute('font-size','9');
+  t2.setAttribute('fill','#5c6370');
+  t2.textContent=n.region+(n.status==='remove'?' · REMOVE':n.status==='violation'?' · VIOLATION':'');
+  g.appendChild(t2);
+  svg.appendChild(g);
+}
+
+function drawEdge(svg,posMap,fromId,toId,color,dashed,bidir){
+  const f=posMap[fromId], t=posMap[toId];
+  if(!f||!t) return;
+  const p1=edgePt(f.cx,f.cy,t.cx,t.cy);
+  const p2=edgePt(t.cx,t.cy,f.cx,f.cy);
+  ensureMarker(svg,color);
+  const a=arrow(svg,p1.x,p1.y,p2.x,p2.y,color,dashed);
+  svg.appendChild(a);
+  if(bidir){
+    ensureMarker(svg,color);
+    const a2=arrow(svg,p2.x,p2.y,p1.x,p1.y,color,dashed);
+    svg.appendChild(a2);
+  }
+}
+
+function buildAsisSVG(svgEl){
+  svgEl.innerHTML='';
+  // edges first (behind nodes)
+  drawEdge(svgEl,ASIS_POS,'ORDER01','PAYMENT01','#60a5fa',false,true);
+  drawEdge(svgEl,ASIS_POS,'ORDER01','INVENTORY01','#60a5fa',false,true);
+  drawEdge(svgEl,ASIS_POS,'INVENTORY01','BATCH01','#60a5fa',false,false);
+  drawEdge(svgEl,ASIS_POS,'PAYMENT01','BATCH01','#60a5fa',false,false);
+  drawEdge(svgEl,ASIS_POS,'BATCH01','REPORT01','#60a5fa',false,false);
+  drawEdge(svgEl,ASIS_POS,'REPORT01','ORDER01','#60a5fa',false,false);
+  // bad channels from LEGACY01
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','ORDER01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','PAYMENT01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','INVENTORY01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','BATCH01','#f5c842',true,false);
+  drawEdge(svgEl,ASIS_POS,'LEGACY01','REPORT01','#f5c842',true,false);
+  // nodes on top
+  ASIS_NODES.forEach(n=>drawNode(svgEl,n,ASIS_POS[n.id],true));
+}
+
+function buildTargetSVG(svgEl){
+  svgEl.innerHTML='';
+  drawEdge(svgEl,TARGET_POS,'ORDER01','PAYMENT01','#60a5fa',false,true);
+  drawEdge(svgEl,TARGET_POS,'ORDER01','INVENTORY01','#4af29a',false,true);
+  drawEdge(svgEl,TARGET_POS,'LEGACY01','ORDER01','#f5c842',false,false);
+  drawEdge(svgEl,TARGET_POS,'LEGACY01','INVENTORY01','#f5c842',false,false);
+  TARGET_NODES.forEach(n=>drawNode(svgEl,n,TARGET_POS[n.id],true));
+}
+
+function showNodeDetail(n){
+  const d=document.getElementById('node-detail');
+  d.style.display='block';
+  d.classList.add('fade-in');
+  document.getElementById('nd-title').textContent=n.label;
+  const rows=[
+    {k:'Region',v:n.region},
+    {k:'Applications',v:n.apps},
+    {k:'Queues',v:n.queues},
+    {k:'Outbound channels',v:n.channels},
+    {k:'Status',v:n.status.toUpperCase()},
+  ];
+  document.getElementById('nd-rows').innerHTML=rows.map(r=>`
+    <div class="nd-row"><span class="nd-key">${r.k}</span><span class="nd-val">${r.v}</span></div>`).join('');
+}
+
+let currentView='asis';
+function setView(v,btn){
+  currentView=v;
+  document.querySelectorAll('.tgl').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const single=document.getElementById('single-view');
+  const diff=document.getElementById('diff-view');
+  if(v==='diff'){
+    single.style.display='none'; diff.style.display='block';
+    buildAsisSVG(document.getElementById('diff-asis-svg'));
+    buildTargetSVG(document.getElementById('diff-target-svg'));
+  } else {
+    single.style.display='grid'; diff.style.display='none';
+    const svg=document.getElementById('topo-svg');
+    const lbl=document.getElementById('topo-canvas-label');
+    document.getElementById('node-detail').style.display='none';
+    if(v==='asis'){
+      svg.setAttribute('viewBox','0 0 660 400');
+      lbl.innerHTML='AS-IS TOPOLOGY — <span>6 queue managers · 14 channels · 8 applications</span>';
+      buildAsisSVG(svg);
+    } else {
+      svg.setAttribute('viewBox','0 0 660 310');
+      lbl.innerHTML='<span style="color:var(--green)">TARGET TOPOLOGY</span> — <span>4 queue managers · 6 channels · all constraints met</span>';
+      buildTargetSVG(svg);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   VALIDATION
+═══════════════════════════════════════════════ */
+const PROPOSALS = [
+  {
+    title:'Decommission QM.BATCH01',
+    why:'QM.BATCH01 exists solely for APP007 (BatchProcessor), which connects to 2 QMs — violating the 1-QM-per-app constraint. After reassigning APP007 to QM.INVENTORY01, BATCH01 becomes empty and purposeless.',
+    impact:[
+      {type:'pos',text:'QM count: 6 → 5'},
+      {type:'pos',text:'Removes 3 channels (BATCH01 related)'},
+      {type:'pos',text:'Fixes APP007 constraint violation'},
+      {type:'neg',text:'APP007 must be migrated to INVENTORY01'},
+    ],
+    change:'APP007 → migrated to QM.INVENTORY01\nQ.BATCH.LOCAL → renamed Q.BATCH.IN on INVENTORY01\nQM.BATCH01 → decommissioned'
+  },
+  {
+    title:'Decommission QM.REPORT01',
+    why:'QM.REPORT01 serves only APP008 (ReportService) with a single queue, receiving data via channel from ORDER01. A single-app, single-queue QM is not justified in a production topology.',
+    impact:[
+      {type:'pos',text:'QM count: 5 → 4'},
+      {type:'pos',text:'Removes 2 channels'},
+      {type:'pos',text:'Simplifies reporting path'},
+      {type:'neg',text:'APP008 must be migrated to ORDER01'},
+    ],
+    change:'APP008 → migrated to QM.ORDER01\nQ.REPORT.LOCAL → moved to QM.ORDER01\nQM.REPORT01 → decommissioned'
+  },
+  {
+    title:'Fix APP003 BillingService — assign to QM.ORDER01 only',
+    why:'BillingService connects to both QM.ORDER01 and QM.PAYMENT01, violating the 1-QM constraint. Billing is downstream of Orders, so ORDER01 is the correct single QM. Payment data will arrive via the existing P→O channel.',
+    impact:[
+      {type:'pos',text:'Multi-QM violations: 3 → 2'},
+      {type:'pos',text:'No new QM or channel needed'},
+      {type:'neg',text:'New local queue Q.BILL.INCOMING required on ORDER01'},
+    ],
+    change:'APP003 → fixed to QM.ORDER01 only\nNew queue Q.BILL.INCOMING on ORDER01\nPayment data: PAYMENT01 → channel → Q.BILL.INCOMING → APP003'
+  },
+  {
+    title:'Fix APP005 FulfillService — assign to QM.INVENTORY01 only',
+    why:'FulfillService connects to QM.INVENTORY01 and QM.LEGACY01. The LEGACY01 connection reads Q.LEGACY.OUT which has NO producer — the connection is already dead. Removing it costs nothing functionally.',
+    impact:[
+      {type:'pos',text:'Multi-QM violations: 2 → 1'},
+      {type:'pos',text:'Removes dead/orphaned Q.LEGACY.OUT'},
+      {type:'neg',text:'None — no active flow is disrupted'},
+    ],
+    change:'APP005 → fixed to QM.INVENTORY01 only\nQ.LEGACY.OUT → decommissioned (no producer)\nDead LEGACY01 connection removed'
+  },
+  {
+    title:'Remove 4 unused queues from topology',
+    why:'Q.LEGACY.DEAD, Q.ORPHAN.1, Q.TEST.OLD and Q.UNUSED.BATCH have zero producers and zero consumers. They are dead configuration weight that increases operational risk and complexity.',
+    impact:[
+      {type:'pos',text:'Unused queues: 4 → 0'},
+      {type:'pos',text:'Complexity score: −20 points'},
+      {type:'pos',text:'Reduces audit surface and risk'},
+      {type:'neg',text:'None — no active flow is disrupted'},
+    ],
+    change:'Q.LEGACY.DEAD → removed\nQ.ORPHAN.1 → removed\nQ.TEST.OLD → removed\nQ.UNUSED.BATCH → removed'
+  },
+  {
+    title:'Rename 3 bad channels on QM.LEGACY01',
+    why:'LEGACY_TO_ORDERS, LEGACY_PAYMENT_CH and LEG_TO_INV do not follow the required fromQM.toQM naming convention. Non-standard names break automated provisioning and topology audits. Two others (BATCH_SEND, RPT_CHAN) are removed with their target QMs.',
+    impact:[
+      {type:'pos',text:'Bad channel names: 5 → 0'},
+      {type:'pos',text:'Enables automated provisioning'},
+      {type:'pos',text:'Complexity score: −10 points'},
+      {type:'neg',text:'Channel rename requires coordinated update'},
+    ],
+    change:'LEGACY_TO_ORDERS → QM.LEGACY01.toQM.ORDER01\nLEGACY_PAYMENT_CH → removed (PAYMENT01 no longer receives from LEGACY)\nLEG_TO_INV → QM.LEGACY01.toQM.INVENTORY01\nBATCH_SEND, RPT_CHAN → removed (target QMs gone)'
+  }
+];
+
+let currentStep=0;
+const decisions=[];
+
+function renderProposal(idx){
+  const area=document.getElementById('proposal-area');
+  if(idx>=PROPOSALS.length){
+    area.innerHTML=`<div style="background:var(--gdim);border:1px solid var(--green);border-radius:8px;padding:20px;text-align:center;font-family:var(--mono);font-size:13px;color:var(--green);">All 6 proposals reviewed ✓<br><span style="color:var(--text3);font-size:11px;margin-top:6px;display:block;">Go to Export to download the final target-state CSVs</span></div>`;
+    document.getElementById('comp-banner').classList.add('show');
+    updateProgress(6);
+    populateExport();
+    return;
+  }
+  const p=PROPOSALS[idx];
+  updateProgress(idx);
+  area.innerHTML=`
+  <div class="proposal-card fade-in">
+    <div class="prop-head">
+      <div class="prop-step">Proposal ${idx+1} of ${PROPOSALS.length}</div>
+      <div class="prop-title">${p.title}</div>
+    </div>
+    <div class="prop-body">
+      <div class="prop-section">
+        <div class="prop-section-label">Agent Reasoning</div>
+        <div class="prop-text">${p.why}</div>
+      </div>
+      <div class="prop-section">
+        <div class="prop-section-label">Impact Analysis</div>
+        <div class="prop-impact">${p.impact.map(i=>`<span class="${i.type}">${i.type==='pos'?'▲':'▼'} ${i.text}</span>`).join('<br>')}</div>
+      </div>
+      <div class="prop-section">
+        <div class="prop-section-label">What Will Change</div>
+        <div class="prop-impact">${p.change.replace(/\n/g,'<br>')}</div>
+      </div>
+    </div>
+    <div class="prop-actions">
+      <button class="btn-approve" onclick="decide(${idx},true)">✓ Approve</button>
+      <button class="btn-reject" onclick="decide(${idx},false)">✗ Reject</button>
+      <button class="btn-skip" onclick="decide(${idx},null)">Skip</button>
+    </div>
+  </div>`;
+}
+
+function decide(idx,approved){
+  const p=PROPOSALS[idx];
+  decisions[idx]={...p, approved};
+  const log=document.getElementById('decision-log');
+  if(log.querySelector('.dl-empty')) log.innerHTML='';
+  const e=document.createElement('div');
+  e.className='dl-entry fade-in';
+  const icon=approved===true?'✓':approved===false?'✗':'—';
+  const cls=approved===true?'ok':approved===false?'no':'';
+  e.innerHTML=`<span class="dl-icon ${cls}">${icon}</span><span class="dl-text">${p.title}</span>`;
+  log.prepend(e);
+  currentStep=idx+1;
+  renderProposal(currentStep);
+}
+
+function updateProgress(step){
+  const pct=Math.round(step/PROPOSALS.length*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=`Step ${step} of ${PROPOSALS.length}`;
+}
+
+/* ═══════════════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════════════ */
+const TARGET_CSVS = {
+  'target_queue_managers.csv':`QM_ID,Region,Neighborhood,Description,Change
+QM.ORDER01,US-EAST,NYC,Order + billing + reporting hub,expanded
+QM.PAYMENT01,US-EAST,NYC,Payment processing,unchanged
+QM.INVENTORY01,US-WEST,LAX,Inventory + fulfillment + batch,expanded
+QM.LEGACY01,US-EAST,NYC,Legacy audit integration slimmed,slimmed`,
+
+  'target_queues.csv':`Queue_Name,QM_ID,Type,HasProducer,HasConsumer,RemoteQM,Change
+Q.ORDER.IN,QM.ORDER01,LOCAL,true,true,,kept
+Q.ORDER.REMOTE,QM.ORDER01,REMOTE,true,false,QM.PAYMENT01,kept
+Q.ORDER.XMIT,QM.ORDER01,XMIT,true,false,,kept
+Q.BILL.INCOMING,QM.ORDER01,LOCAL,true,true,,new
+Q.REPORT.LOCAL,QM.ORDER01,LOCAL,true,true,,moved from REPORT01
+Q.PAY.LOCAL,QM.PAYMENT01,LOCAL,true,true,,kept
+Q.STOCK.LOCAL,QM.INVENTORY01,LOCAL,true,true,,kept
+Q.FULFILL.IN,QM.INVENTORY01,LOCAL,true,true,,kept
+Q.BATCH.IN,QM.INVENTORY01,LOCAL,true,true,,new replaces BATCH01
+Q.AUDIT.LOCAL,QM.LEGACY01,LOCAL,true,true,,kept`,
+
+  'target_channels.csv':`Channel_Name,FromQM,ToQM,Type,NamingConventionOK,Change
+QM.ORDER01.toQM.PAYMENT01,QM.ORDER01,QM.PAYMENT01,SENDER,true,kept
+QM.PAYMENT01.toQM.ORDER01,QM.PAYMENT01,QM.ORDER01,RECEIVER,true,kept
+QM.ORDER01.toQM.INVENTORY01,QM.ORDER01,QM.INVENTORY01,SENDER,true,kept
+QM.INVENTORY01.toQM.ORDER01,QM.INVENTORY01,QM.ORDER01,RECEIVER,true,kept
+QM.LEGACY01.toQM.ORDER01,QM.LEGACY01,QM.ORDER01,SENDER,true,renamed from LEGACY_TO_ORDERS
+QM.LEGACY01.toQM.INVENTORY01,QM.LEGACY01,QM.INVENTORY01,SENDER,true,renamed from LEG_TO_INV`,
+
+  'target_applications.csv':`App_ID,App_Name,QM_ID,Role,Queues_Used,SingleQM_Compliant,Change
+APP001,OrderService,QM.ORDER01,Producer,Q.ORDER.IN|Q.ORDER.REMOTE,true,unchanged
+APP002,PaymentService,QM.PAYMENT01,Consumer,Q.PAY.LOCAL,true,unchanged
+APP003,BillingService,QM.ORDER01,Consumer,Q.BILL.INCOMING,true,fixed
+APP004,StockService,QM.INVENTORY01,Consumer,Q.STOCK.LOCAL,true,unchanged
+APP005,FulfillService,QM.INVENTORY01,Consumer,Q.FULFILL.IN,true,fixed
+APP006,AuditService,QM.LEGACY01,Consumer,Q.AUDIT.LOCAL,true,unchanged
+APP007,BatchProcessor,QM.INVENTORY01,Producer,Q.BATCH.IN,true,fixed
+APP008,ReportService,QM.ORDER01,Consumer,Q.REPORT.LOCAL,true,fixed`
+};
+
+function populateExport(){
+  const grid=document.getElementById('export-grid');
+  grid.innerHTML=Object.entries(TARGET_CSVS).map(([name,csv])=>{
+    const lines=csv.trim().split('\n');
+    const hdr=`<span class="hdr">${lines[0]}</span>`;
+    const rest=lines.slice(1).join('\n');
+    return `<div class="exp-card">
+      <div class="exp-head">
+        <span class="exp-title">${name}</span>
+        <span class="exp-rows">${lines.length-1} rows</span>
+        <button class="dl-btn" onclick="dlCSV('${name}')">⬇</button>
+      </div>
+      <div class="exp-csv">${hdr}\n${rest}</div>
+    </div>`;
+  }).join('');
+
+  const decEl=document.getElementById('export-decisions');
+  const allDec=decisions.length>0 ? decisions : PROPOSALS.map(p=>({...p,approved:true}));
+  decEl.innerHTML=allDec.map((d,i)=>{
+    const approved=d.approved!==false;
+    return `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);align-items:flex-start;">
+      <span style="font-family:var(--mono);font-size:11px;color:${approved?'var(--green)':'var(--red)'};">${approved?'✓':'✗'}</span>
+      <span>${d.title}</span>
+    </div>`;
+  }).join('');
+}
+
+function dlCSV(name){
+  const content=TARGET_CSVS[name];
+  const blob=new Blob([content],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name; a.click();
+}
+
+function downloadAll(){
+  Object.keys(TARGET_CSVS).forEach((k,i)=>setTimeout(()=>dlCSV(k),i*200));
+}
+
+/* ═══════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════ */
+function nav(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  document.querySelector(`[onclick="nav('${id}')"]`).classList.add('active');
+  if(id==='export') populateExport();
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  buildAsisSVG(document.getElementById('topo-svg'));
+  renderProposal(0);
+});
+</script>
+</body>
+</html>

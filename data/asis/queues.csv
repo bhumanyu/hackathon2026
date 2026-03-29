@@ -1,0 +1,20 @@
+Queue_Name,QM_ID,Type,HasProducer,HasConsumer,RemoteQM,Notes
+Q.ORDER.IN,QM.ORDER01,LOCAL,true,true,,Main order intake queue
+Q.ORDER.REMOTE,QM.ORDER01,REMOTE,true,false,QM.PAYMENT01,Sends orders to payment
+Q.ORDER.XMIT,QM.ORDER01,XMIT,true,false,,Transmission queue for payment
+Q.ORDER.LOCAL.IN,QM.ORDER01,LOCAL,false,true,,Receives from report QM
+Q.PAY.LOCAL,QM.PAYMENT01,LOCAL,false,true,,Payment consumer queue
+Q.PAY.REMOTE,QM.PAYMENT01,REMOTE,true,false,QM.BATCH01,Sends to batch
+Q.BILL.OUT,QM.ORDER01,LOCAL,true,false,,Billing output - no consumer found
+Q.STOCK.LOCAL,QM.INVENTORY01,LOCAL,false,true,,Stock level updates
+Q.FULFILL.IN,QM.INVENTORY01,LOCAL,false,true,,Fulfillment instructions
+Q.FULFILL.REMOTE,QM.INVENTORY01,REMOTE,true,false,QM.BATCH01,
+Q.LEGACY.OUT,QM.LEGACY01,LOCAL,true,false,,Legacy outbound - no consumer
+Q.LEGACY.DEAD,QM.LEGACY01,LOCAL,false,false,,UNUSED - no producer or consumer
+Q.ORPHAN.1,QM.LEGACY01,LOCAL,false,false,,UNUSED - orphaned queue
+Q.AUDIT.LOCAL,QM.LEGACY01,LOCAL,false,true,,Audit log consumer
+Q.BATCH.LOCAL,QM.BATCH01,LOCAL,false,true,,Batch job input
+Q.BATCH.REMOTE,QM.LEGACY01,REMOTE,true,false,QM.BATCH01,
+Q.TEST.OLD,QM.LEGACY01,LOCAL,false,false,,UNUSED - old test queue
+Q.UNUSED.BATCH,QM.BATCH01,LOCAL,false,false,,UNUSED - deprecated batch
+Q.REPORT.LOCAL,QM.REPORT01,LOCAL,false,true,,Report generation input

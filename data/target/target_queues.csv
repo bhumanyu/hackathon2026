@@ -1,0 +1,11 @@
+Queue_Name,QM_ID,Type,HasProducer,HasConsumer,RemoteQM,Change
+Q.ORDER.IN,QM.ORDER01,LOCAL,true,true,,kept
+Q.ORDER.REMOTE,QM.ORDER01,REMOTE,true,false,QM.PAYMENT01,kept
+Q.ORDER.XMIT,QM.ORDER01,XMIT,true,false,,kept
+Q.BILL.INCOMING,QM.ORDER01,LOCAL,true,true,,new - receives billing data from PAYMENT01
+Q.REPORT.LOCAL,QM.ORDER01,LOCAL,true,true,,moved from QM.REPORT01
+Q.PAY.LOCAL,QM.PAYMENT01,LOCAL,true,true,,kept
+Q.STOCK.LOCAL,QM.INVENTORY01,LOCAL,true,true,,kept
+Q.FULFILL.IN,QM.INVENTORY01,LOCAL,true,true,,kept
+Q.BATCH.IN,QM.INVENTORY01,LOCAL,true,true,,new - replaces QM.BATCH01
+Q.AUDIT.LOCAL,QM.LEGACY01,LOCAL,true,true,,kept

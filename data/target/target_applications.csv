@@ -1,0 +1,9 @@
+App_ID,App_Name,QM_ID,Role,Queues_Used,SingleQM_Compliant,Change
+APP001,OrderService,QM.ORDER01,Producer,Q.ORDER.IN|Q.ORDER.REMOTE,true,unchanged
+APP002,PaymentService,QM.PAYMENT01,Consumer,Q.PAY.LOCAL,true,unchanged
+APP003,BillingService,QM.ORDER01,Consumer,Q.BILL.INCOMING,true,fixed - was on 2 QMs
+APP004,StockService,QM.INVENTORY01,Consumer,Q.STOCK.LOCAL,true,unchanged
+APP005,FulfillService,QM.INVENTORY01,Consumer,Q.FULFILL.IN,true,fixed - removed dead LEGACY01 connection
+APP006,AuditService,QM.LEGACY01,Consumer,Q.AUDIT.LOCAL,true,unchanged
+APP007,BatchProcessor,QM.INVENTORY01,Producer,Q.BATCH.IN,true,fixed - migrated from LEGACY01+BATCH01
+APP008,ReportService,QM.ORDER01,Consumer,Q.REPORT.LOCAL,true,fixed - REPORT01 QM removed
